@@ -1,0 +1,466 @@
+<!-- Save as cyber-dome-enhanced.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cyber-Dome Enhanced</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <style>
+    :root {
+      --bg: #121212;
+      --text: #f0f0f0;
+      --accent: #00d8a4;
+      --danger: #ff4d4d;
+      --success: #66ff99;
+      --border: #333;
+    }
+    .light {
+      --bg: #f0f0f0;
+      --text: #121212;
+      --accent: #007acc;
+      --danger: #cc0000;
+      --success: #009933;
+      --border: #ccc;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-wrap: wrap;
+    }
+    nav.sidebar {
+      width: 230px;
+      background: var(--border);
+      padding: 1em;
+      height: 100vh;
+      position: fixed;
+      transition: 0.3s;
+    }
+    .sidebar.collapsed {
+      width: 60px;
+      overflow: hidden;
+    }
+    .sidebar h1 {
+      display: flex;
+      align-items: center;
+      font-size: 1.2em;
+    }
+    .sidebar h1 img {
+      height: 30px;
+      margin-right: 10px;
+    }
+    .nav-links {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .nav-links a {
+      color: var(--text);
+      text-decoration: none;
+      margin: 10px 0;
+      padding: 8px;
+      border-radius: 6px;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+    .nav-links a:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+    .main {
+      margin-left: 230px;
+      padding: 1em;
+      flex: 1;
+      max-width: 1000px;
+    }
+    header {
+      background: var(--accent);
+      padding: 1em;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      border-radius: 8px;
+    }
+    button {
+      margin: 5px;
+      padding: 0.5em 1em;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .section {
+      background: rgba(255,255,255,0.05);
+      padding: 1em;
+      margin-top: 20px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    input[type="file"] {
+      margin-top: 10px;
+    }
+    #dropZone {
+      border: 2px dashed var(--accent);
+      padding: 20px;
+      margin-top: 10px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    #threatMeter {
+      width: 100%;
+      height: 10px;
+      background: #333;
+      margin-top: 10px;
+    }
+    #threatMeter div {
+      height: 100%;
+      background: var(--danger);
+      width: 0%;
+      transition: width 0.4s;
+    }
+    #progressBar {
+      height: 10px;
+      background: var(--accent);
+      width: 0%;
+      margin-top: 5px;
+      transition: 0.3s;
+    }
+    footer {
+      text-align: center;
+      padding: 1em;
+      font-weight: bold;
+    }
+    @media screen and (max-width: 768px) {
+      nav.sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+      }
+      .main {
+        margin-left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="sidebar" id="sidebar" aria-label="Sidebar navigation">
+    <h1>
+      <img src="https://dummyimage.com/40x40/00d8a4/fff&text=C_D" alt="Cyber-Dome Logo">
+      <span id="sidebarTitle">Cyber-Dome</span>
+    </h1>
+    <div class="nav-links">
+      <a href="#scan">Scan</a>
+      <a href="#history">History (<span id="historyCount">0</span>)</a>
+      <a href="#about">About</a>
+      <a href="javascript:void(0)" onclick="toggleTheme()" aria-label="Toggle theme">Toggle Theme</a>
+      <a href="javascript:void(0)" onclick="toggleSidebar()" aria-label="Toggle sidebar">Collapse</a>
+    </div>
+  </nav>
+
+  <main class="main">
+    <header>
+      <div>Cyber-Dome Enhanced PDF Tool</div>
+    </header>
+
+    <section class="section" id="scan">
+      <h2>📄 Upload PDF</h2>
+      <input type="file" id="fileInput" accept="application/pdf" aria-label="Upload PDF file">
+      <div id="dropZone" aria-label="Drag and drop PDF area">Drag and drop PDF here</div>
+      <div id="fileInfo"></div>
+      <div id="threatMeter"><div></div></div>
+      <div id="progressBar"></div>
+      <div id="scanResult"></div>
+      <h3>🔍 Scan Options</h3>
+      <label><input type="checkbox" class="scan-option" value="fonts" checked> Embedded Fonts</label><br>
+      <label><input type="checkbox" class="scan-option" value="links" checked> Hyperlinks</label><br>
+      <label><input type="checkbox" class="scan-option" value="js" checked> JavaScript</label><br>
+      <label><input type="checkbox" class="scan-option" value="phishing" checked> Phishing Words (OCR)</label><br>
+      <button onclick="scanFile()" aria-label="Scan PDF">Scan PDF</button>
+      <button onclick="exportReport()" aria-label="Export report as PDF">Export PDF</button>
+      <button onclick="exportAs('json')" aria-label="Export report as JSON">Export JSON</button>
+      <button onclick="exportAs('csv')" aria-label="Export report as CSV">Export CSV</button>
+      <button onclick="exportAs('txt')" aria-label="Export report as text">Export Text</button>
+      <button onclick="copyToClipboard()" aria-label="Copy summary to clipboard">📋 Copy Summary</button>
+    </section>
+
+    <section class="section" id="history">
+      <h2>🕘 Scan History</h2>
+      <button onclick="clearHistory()" aria-label="Clear scan history">Clear History</button>
+      <button onclick="sortHistoryByDate()" aria-label="Sort history by date" style="background: grey;">Sorted by Date</button>
+      <div id="historyList"></div>
+    </section>
+
+    <section class="section" id="about">
+      <h2>ℹ️ About</h2>
+      <p>This tool simulates PDF security scans including phishing keyword detection using extracted text. Built by <strong>Cyber-Dome Pvt. Ltd</strong></p>
+      <h3>🔑 Key Features:</h3>
+      <ul>
+        <li><strong>Threat Detection:</strong> Detects malware, scripts, and suspicious links in PDFs.</li>
+        <li><strong>Real-time Scanning:</strong> Instant analysis before opening files.</li>
+        <li><strong>Deep Content Inspection:</strong> Reviews metadata and embedded content.</li>
+        <li><strong>Integration Friendly:</strong> Works with antivirus software and frameworks.</li>
+        <li><strong>Automated Alerts:</strong> Flags potential issues and recommends actions.</li>
+      </ul>
+      <p>Developed by <strong>Cyber-Dome Pvt. Ltd</strong> — a secure innovation by the team for a clean future.</p>
+    </section>
+<section class="section" id="reviews">
+  <h2>🗣️ User Reviews</h2>
+  <form id="reviewForm">
+    <input type="text" id="reviewerName" placeholder="Your Name" required><br>
+    <textarea id="reviewMessage" placeholder="Your review..." rows="4" required></textarea><br>
+    <button type="submit">Submit Review</button>
+  </form>
+  <div id="reviewsList"></div>
+</section>
+
+    <footer>
+      Developed by Cyber-Dome Team | Founded by DS7
+    </footer>
+  </main>
+
+  <script>
+ const API_URL = 'http://localhost:5000/api/reviews';
+
+  document.getElementById('reviewForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const name = document.getElementById('reviewerName').value;
+    const message = document.getElementById('reviewMessage').value;
+
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, message })
+    });
+
+    if (res.ok) {
+      document.getElementById('reviewForm').reset();
+      fetchReviews();
+    } else {
+      alert('Error submitting review.');
+    }
+  });
+
+  async function fetchReviews() {
+    const res = await fetch(API_URL);
+    const reviews = await res.json();
+    const container = document.getElementById('reviewsList');
+    container.innerHTML = reviews.map(r => `
+      <div style="border:1px solid var(--border);padding:10px;margin-top:10px;border-radius:6px;">
+        <strong>${r.name}</strong> (${new Date(r.date).toLocaleString()})<br>${r.message}
+      </div>
+    `).join('');
+  }
+
+  window.onload = () => {
+    if (localStorage.getItem("theme") === "light") document.body.classList.add("light");
+    renderHistory();
+    fetchReviews();
+  };
+    const phishingWords = ["password", "login", "verify", "account", "bank", "click here"];
+    const fileInput = document.getElementById("fileInput");
+    const dropZone = document.getElementById("dropZone");
+    const fileInfo = document.getElementById("fileInfo");
+    const threatBar = document.querySelector("#threatMeter div");
+    const progressBar = document.getElementById("progressBar");
+    const scanResult = document.getElementById("scanResult");
+    const historyList = document.getElementById("historyList");
+    const historyCount = document.getElementById("historyCount");
+
+    let lastScan = {};
+    let scanHistory = JSON.parse(localStorage.getItem('scanHistory') || '[]');
+
+    dropZone.addEventListener("dragover", e => {
+      e.preventDefault();
+      dropZone.style.background = "#333";
+    });
+    dropZone.addEventListener("dragleave", () => dropZone.style.background = "");
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropZone.style.background = "";
+      fileInput.files = e.dataTransfer.files;
+      handleFile();
+    });
+    fileInput.addEventListener("change", handleFile);
+
+    async function handleFile() {
+      const file = fileInput.files[0];
+      if (!file || file.type !== "application/pdf") return;
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const typedarray = new Uint8Array(reader.result);
+        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+        fileInfo.innerHTML = `<strong>Name:</strong> ${file.name}<br><strong>Size:</strong> ${(file.size/1024).toFixed(2)} KB<br><strong>Pages:</strong> ${pdf.numPages}`;
+        fileInfo.dataset.pageCount = pdf.numPages;
+        fileInfo.dataset.text = await extractTextFromPDF(pdf);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    async function extractTextFromPDF(pdf) {
+      let text = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map(item => item.str).join(" ") + " ";
+      }
+      return text.toLowerCase();
+    }
+
+    function getSelectedOptions() {
+      return [...document.querySelectorAll(".scan-option:checked")].map(el => el.value);
+    }
+
+    function simulateProgress() {
+      return new Promise(res => {
+        let width = 0;
+        const interval = setInterval(() => {
+          width += 2;
+          progressBar.style.width = width + "%";
+          if (width >= 100) {
+            clearInterval(interval);
+            res();
+          }
+        }, 50);
+      });
+    }
+
+    async function scanFile() {
+      const file = fileInput.files[0];
+      if (!file) return alert("Upload a PDF.");
+      const options = getSelectedOptions();
+      if (!options.length) return alert("Select at least one scan option.");
+
+      scanResult.innerHTML = "🔍 Scanning...";
+      progressBar.style.width = "0%";
+      threatBar.style.width = "0%";
+      await simulateProgress();
+
+      const fileText = fileInfo.dataset.text || "";
+      const found = [];
+      const threatMap = {
+        fonts: "Suspicious embedded fonts",
+        links: "Suspicious hyperlinks",
+        js: "Embedded JavaScript",
+        phishing: "Phishing keywords"
+      };
+
+      options.forEach(opt => {
+        const chance = (file.name.length + file.size + opt.length) % 5;
+        if (opt === "phishing") {
+          if (phishingWords.some(word => fileText.includes(word))) {
+            found.push(threatMap[opt]);
+          }
+        } else if (chance % 2 === 0) {
+          found.push(threatMap[opt]);
+        }
+      });
+
+      threatBar.style.width = `${found.length * 25}%`;
+
+      let html = `<p><strong>${file.name}</strong></p><ul>`;
+      options.forEach(opt => {
+        html += `<li>${threatMap[opt]}: ${found.includes(threatMap[opt]) ? "⚠️" : "✅"}</li>`;
+      });
+      html += `</ul>`;
+      scanResult.innerHTML = found.length ? `❌ Threats found.${html}` : `✅ No threats found.${html}`;
+
+      lastScan = {
+        filename: file.name,
+        timestamp: new Date().toLocaleString(),
+        status: found.length ? "INFECTED" : "CLEAN",
+        threats: found,
+        options
+      };
+
+      scanHistory.unshift(lastScan);
+      scanHistory = scanHistory.slice(0, 15);
+      localStorage.setItem("scanHistory", JSON.stringify(scanHistory));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      historyList.innerHTML = "";
+      scanHistory.forEach(scan => {
+        const div = document.createElement("div");
+        div.innerHTML = `<strong>${scan.filename}</strong> — ${scan.status} (${scan.timestamp})<br>Threats: ${scan.threats.join(", ") || "None"}<hr>`;
+        historyList.appendChild(div);
+      });
+      historyCount.textContent = scanHistory.length;
+    }
+
+    function exportReport() {
+      if (!lastScan.filename) return alert("Scan first.");
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("Cyber-Dome Scan Report", 14, 20);
+      doc.text(`File: ${lastScan.filename}`, 14, 30);
+      doc.text(`Status: ${lastScan.status}`, 14, 40);
+      doc.text("Details:", 14, 50);
+      lastScan.options.forEach((opt, i) => {
+        const text = `${opt}: ${lastScan.threats.includes(opt) ? "⚠️" : "✅"}`;
+        doc.text(text, 20, 60 + i * 10);
+      });
+      doc.save(`${lastScan.filename}_report.pdf`);
+    }
+
+    function exportAs(type) {
+      if (!lastScan.filename) return alert("Scan first.");
+      let content = "";
+      if (type === "json") content = JSON.stringify(lastScan, null, 2);
+      else if (type === "csv") content = `filename,status,timestamp,threats,options\n"${lastScan.filename}","${lastScan.status}","${lastScan.timestamp}","${lastScan.threats.join(";")}","${lastScan.options.join(";")}"`;
+      else if (type === "txt") content = `Scan Report\nFile: ${lastScan.filename}\nStatus: ${lastScan.status}\nThreats: ${lastScan.threats.join(", ")}\nOptions: ${lastScan.options.join(", ")}`;
+
+      const blob = new Blob([content], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `${lastScan.filename}_report.${type}`;
+      link.click();
+    }
+
+    function copyToClipboard() {
+      if (!lastScan.filename) return alert("Scan first.");
+      const summary = `File: ${lastScan.filename}\nStatus: ${lastScan.status}\nThreats: ${lastScan.threats.join(", ") || "None"}`;
+      navigator.clipboard.writeText(summary);
+      alert("Copied to clipboard!");
+    }
+
+    function clearHistory() {
+      if (confirm("Clear all scan history?")) {
+        scanHistory = [];
+        localStorage.removeItem("scanHistory");
+        renderHistory();
+      }
+    }
+
+    function sortHistoryByDate() {
+      scanHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      renderHistory();
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle("light");
+      localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("collapsed");
+    }
+
+    window.onload = () => {
+      if (localStorage.getItem("theme") === "light") document.body.classList.add("light");
+      renderHistory();
+    };
+  </script>
+</body>
+</html>
